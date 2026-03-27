@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STPS Sequence - Duelo NOM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            aspect-ratio: 1 / 1;
+        }
+
+        .glow-effect {
+            box-shadow: 0 0 15px rgba(250, 204, 21, 0.8);
+            z-index: 10;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; transform: scale(1.05); }
+            50% { opacity: 0.8; transform: scale(1.02); }
+        }
+
+        .animate-pulse-glow {
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+
+        .card-shadow {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 overflow-x-hidden select-none">
+
+    <div id="app" class="min-h-screen p-2 sm:p-4 lg:p-6">
+        <div class="max-w-5xl mx-auto flex flex-col gap-4">
+            
+            <!-- HEADER (Siempre visible) -->
+            <header id="game-header" class="flex justify-between items-center bg-slate-900/80 p-3 sm:p-4 rounded-2xl border border-slate-800 backdrop-blur-md sticky top-0 z-40">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div id="turn-indicator-icon" class="p-1.5 sm:p-2 rounded-lg shadow-lg transition-colors duration-500 bg-blue-600">
+                        <i data-lucide="layout-grid" class="w-5 h-5 sm:w-6 sm:h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-[10px] font-black tracking-widest uppercase text-slate-500 leading-none mb-1">Duelo NOM</h1>
+                        <p class="text-sm sm:text-lg font-bold text-white leading-none tracking-tight">STPS Sequence</p>
+                    </div>
+                </div>
+                <div id="score-panel" class="hidden flex gap-3 sm:gap-6 text-center">
+                    <div>
+                        <p class="text-[9px] text-blue-500 font-black uppercase tracking-tighter">Azul</p>
+                        <p id="score-blue" class="text-sm sm:text-lg font-mono text-blue-400 leading-none">0</p>
+                    </div>
+                    <div class="w-px bg-slate-800 h-6 self-center"></div>
+                    <div>
+                        <p class="text-[9px] text-red-500 font-black uppercase tracking-tighter">Rojo</p>
+                        <p id="score-red" class="text-sm sm:text-lg font-mono text-red-400 leading-none">0</p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- PANTALLA DE BIENVENIDA -->
+            <div id="screen-welcome" class="flex-1 flex flex-col items-center justify-center py-10 space-y-8">
+                <div class="text-center space-y-4 px-4">
+                    <div class="inline-flex p-5 bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl mb-2 relative">
+                        <i data-lucide="users" class="w-16 h-16 text-blue-500"></i>
+                    </div>
+                    <h2 class="text-5xl font-black text-white leading-[0.9] uppercase tracking-tighter italic">Sequence<br><span class="text-blue-500">Azul</span> vs <span class="text-red-500">Rojo</span></h2>
+                    <p class="text-slate-400 text-sm max-w-xs mx-auto font-medium">Conquista el tablero demostrando tus conocimientos en seguridad e higiene.</p>
+                </div>
+                <button onclick="showRules()" class="group w-full max-w-xs bg-white text-slate-950 font-black py-5 rounded-3xl transition-all shadow-xl uppercase tracking-widest flex items-center justify-center gap-3 hover:scale-105 active:scale-95">
+                    CÓMO JUGAR <i data-lucide="arrow-right" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <!-- PANTALLA DE REGLAS -->
+            <div id="screen-rules" class="hidden flex-1 flex flex-col py-6 space-y-6 px-2">
+                <div class="text-center">
+                    <i data-lucide="book-open" class="w-12 h-12 text-yellow-500 mx-auto mb-3"></i>
+                    <h2 class="text-2xl font-black uppercase tracking-tighter italic">Reglas del Duelo</h2>
+                </div>
+                <div class="grid gap-4 max-w-md mx-auto w-full">
+                    <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 flex gap-4 items-center">
+                        <div class="p-3 bg-slate-800 rounded-xl text-blue-400"><i data-lucide="target"></i></div>
+                        <div><h4 class="font-black text-sm uppercase text-slate-100">Selecciona</h4><p class="text-xs text-slate-400">Elige una de las 3 cartas de tu mano.</p></div>
+                    </div>
+                    <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 flex gap-4 items-center">
+                        <div class="p-3 bg-slate-800 rounded-xl text-yellow-400"><i data-lucide="sparkles"></i></div>
+                        <div><h4 class="font-black text-sm uppercase text-slate-100">Ubica</h4><p class="text-xs text-slate-400">Busca las casillas que brillen y toca una.</p></div>
+                    </div>
+                    <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 flex gap-4 items-center">
+                        <div class="p-3 bg-slate-800 rounded-xl text-red-400"><i data-lucide="brain"></i></div>
+                        <div><h4 class="font-black text-sm uppercase text-slate-100">Responde</h4><p class="text-xs text-slate-400">Contesta la pregunta de la NOM para ganar el espacio.</p></div>
+                    </div>
+                </div>
+                <button onclick="startGame()" class="max-w-md mx-auto w-full bg-blue-600 text-white font-black py-5 rounded-3xl transition-all shadow-xl uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-blue-500 active:scale-95">
+                    ¡A JUGAR! <i data-lucide="arrow-right" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <!-- ÁREA DE JUEGO -->
+            <div id="screen-game" class="hidden flex flex-col gap-4">
+                <div id="turn-banner" class="p-2.5 rounded-2xl border flex items-center justify-center gap-3 transition-all duration-500 shadow-lg bg-blue-600/10 border-blue-500/40">
+                    <div id="turn-ping" class="w-3 h-3 rounded-full animate-pulse bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
+                    <p class="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-slate-300">
+                        Turno del Equipo <span id="current-turn-text" class="text-blue-400">Azul</span>
+                    </p>
+                </div>
+
+                <div class="flex flex-col md:flex-row gap-4 lg:gap-8 items-center md:items-start justify-center">
+                    <!-- TABLERO -->
+                    <div id="board" class="w-full max-w-[500px] sm:max-w-[550px] board-grid gap-0.5 sm:gap-1 bg-slate-900 p-1 rounded-xl border-4 border-slate-800 shadow-2xl overflow-hidden touch-manipulation">
+                        <!-- Casillas generadas por JS -->
+                    </div>
+
+                    <!-- MANO DE CARTAS -->
+                    <div id="hand-container" class="w-full md:w-48 lg:w-56 p-3 sm:p-5 rounded-3xl border-2 transition-all duration-500 shadow-xl bg-blue-900/10 border-blue-500/20">
+                        <p class="text-[9px] font-black uppercase text-slate-500 tracking-widest text-center mb-3 sm:mb-5">Tu Mano</p>
+                        <div id="hand" class="flex md:flex-col justify-center gap-2 sm:gap-4">
+                            <!-- Cartas generadas por JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/60 p-3 rounded-2xl border border-slate-800 flex items-center gap-3 max-w-lg mx-auto md:mx-0">
+                    <i data-lucide="info" class="w-4 h-4 text-blue-500 shrink-0"></i>
+                    <p class="text-[10px] text-slate-400 uppercase font-bold tracking-tight">
+                        Toca una carta, luego toca un espacio <span class="text-yellow-500 italic">brillante</span> para reclamarlo.
+                    </p>
+                </div>
+            </div>
+
+            <!-- MODAL DE PREGUNTA -->
+            <div id="question-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-xl">
+                <div class="bg-slate-900 w-full max-w-sm rounded-[2.5rem] border-2 border-slate-800 shadow-2xl overflow-hidden">
+                    <div id="modal-header" class="p-6 flex items-center gap-4 bg-blue-600">
+                        <div class="bg-white/20 p-2.5 rounded-xl">
+                            <i data-lucide="brain" class="w-8 h-8 text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-black text-white leading-tight uppercase italic tracking-tighter">Validación</h3>
+                            <p id="modal-turn-text" class="text-[9px] text-white/70 font-bold uppercase tracking-widest">Turno Azul</p>
+                        </div>
+                    </div>
+                    
+                    <div id="modal-content" class="p-6 space-y-5">
+                        <p id="question-text" class="text-sm sm:text-base text-slate-100 font-bold leading-relaxed"></p>
+                        <div id="options-container" class="grid gap-2.5"></div>
+                    </div>
+
+                    <div id="feedback-content" class="hidden p-6 flex flex-col items-center text-center space-y-4">
+                        <div id="feedback-icon-container" class="p-4 rounded-full"></div>
+                        <p id="feedback-title" class="font-black uppercase text-xl"></p>
+                        <p id="feedback-msg" class="text-[11px] text-slate-300 leading-tight"></p>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="text-center py-6">
+                <p class="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.4em] text-slate-700">STPS • Digital Security Game v3.0 • Single HTML</p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN ---
+        const SUITS = [
+            { symbol: '♠', color: 'text-slate-900', name: 'spades' },
+            { symbol: '♥', color: 'text-red-600', name: 'hearts' },
+            { symbol: '♦', color: 'text-red-600', name: 'diamonds' },
+            { symbol: '♣', color: 'text-slate-900', name: 'clubs' }
+        ];
+        const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'Q', 'K'];
+        const QUESTION_BANK = [
+            { q: "¿Qué NOM regula las condiciones de seguridad en edificios?", a: "NOM-001-STPS", options: ["NOM-001-STPS", "NOM-002-STPS", "NOM-017-STPS"] },
+            { q: "¿Cuál es el ancho mínimo permitido para pasillos?", a: "1.20 metros", options: ["0.80 metros", "1.20 metros", "1.50 metros"] },
+            { q: "¿Qué norma previene incendios?", a: "NOM-002-STPS", options: ["NOM-002-STPS", "NOM-004-STPS", "NOM-005-STPS"] },
+            { q: "¿Cada cuánto realizar un simulacro de evacuación?", a: "Anualmente", options: ["Mensualmente", "Semestralmente", "Anualmente"] },
+            { q: "¿Qué tipo de fuego involucra madera o papel?", a: "Clase A", options: ["Clase A", "Clase B", "Clase C"] },
+            { q: "¿Qué norma regula maquinaria y equipo?", a: "NOM-004-STPS", options: ["NOM-004-STPS", "NOM-001-STPS", "NOM-006-STPS"] },
+            { q: "¿Qué dispositivo detiene la máquina de inmediato?", a: "Paro de emergencia", options: ["Interruptor general", "Paro de emergencia", "Guarda física"] },
+            { q: "¿Qué significa HDS?", a: "Hoja de Datos de Seguridad", options: ["Hoja de Datos de Seguridad", "Herramienta de Seguridad", "Higiene de Sustancias"] },
+            { q: "¿Peso máximo que puede cargar un hombre?", a: "25 kg", options: ["20 kg", "25 kg", "50 kg"] },
+            { q: "¿Qué norma regula el uso de EPP?", a: "NOM-017-STPS", options: ["NOM-017-STPS", "NOM-019-STPS", "NOM-026-STPS"] },
+            { q: "¿Qué color indica prohibición?", a: "Rojo", options: ["Azul", "Rojo", "Amarillo"] },
+            { q: "¿Qué indica el color azul en señalética?", a: "Obligación", options: ["Precaución", "Información", "Obligación"] },
+            { q: "¿Qué norma trata factores de riesgo psicosocial?", a: "NOM-035-STPS", options: ["NOM-035-STPS", "NOM-030-STPS", "NOM-025-STPS"] }
+        ];
+
+        // --- ESTADO DEL JUEGO ---
+        let board = [];
+        let hand = [];
+        let turn = 'Azul';
+        let scores = { Azul: 0, Rojo: 0 };
+        let selectedHandIdx = null;
+        let pendingMove = null;
+
+        // --- FUNCIONES DE NAVEGACIÓN ---
+        function showRules() {
+            document.getElementById('screen-welcome').classList.add('hidden');
+            document.getElementById('screen-rules').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function startGame() {
+            document.getElementById('screen-rules').classList.add('hidden');
+            document.getElementById('screen-game').classList.remove('hidden');
+            document.getElementById('score-panel').classList.remove('hidden');
+            initGame();
+        }
+
+        // --- LÓGICA DE INICIO ---
+        function initGame() {
+            // Generar tablero
+            const cards = [];
+            SUITS.forEach(suit => RANKS.forEach(rank => {
+                cards.push({ rank, suit });
+                cards.push({ rank, suit });
+            }));
+            cards.sort(() => Math.random() - 0.5);
+
+            board = [];
+            let cardIdx = 0;
+            for (let r = 0; r < 10; r++) {
+                const row = [];
+                for (let c = 0; c < 10; c++) {
+                    if ((r === 0 || r === 9) && (c === 0 || c === 9)) {
+                        row.push({ type: 'wild', chip: 'free' });
+                    } else {
+                        row.push({ ...cards[cardIdx], chip: null });
+                        cardIdx++;
+                    }
+                }
+                board.push(row);
+            }
+
+            // Mano inicial
+            hand = [drawCard(), drawCard(), drawCard()];
+            renderBoard();
+            renderHand();
+            updateUI();
+        }
+
+        function drawCard() {
+            return {
+                rank: RANKS[Math.floor(Math.random() * RANKS.length)],
+                suit: SUITS[Math.floor(Math.random() * SUITS.length)]
+            };
+        }
+
+        // --- RENDERIZADO ---
+        function renderBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+            
+            board.forEach((row, r) => {
+                row.forEach((cell, c) => {
+                    const cellEl = document.createElement('div');
+                    const isGlow = shouldCellGlow(cell);
+                    
+                    cellEl.className = `relative flex items-center justify-center rounded-sm transition-all duration-200 cursor-pointer
+                        ${cell.type === 'wild' ? 'bg-slate-800' : 'bg-white'}
+                        ${isGlow ? 'glow-effect ring-2 sm:ring-4 ring-yellow-400 animate-pulse-glow' : ''}
+                        ${cell.chip === 'blue' ? 'bg-blue-600' : cell.chip === 'red' ? 'bg-red-600' : ''}`;
+                    
+                    cellEl.onclick = () => onCellClick(r, c);
+
+                    let content = '';
+                    if (cell.type === 'wild') {
+                        content = `<i data-lucide="shield-check" class="w-3 h-3 sm:w-5 sm:h-5 text-slate-100 opacity-30"></i>`;
+                    } else {
+                        content = `
+                            <div class="flex flex-col items-center leading-none text-[7px] sm:text-[10px] font-black ${cell.chip ? 'text-white' : cell.suit.color}">
+                                <span>${cell.rank}</span>
+                                <span class="text-[10px] sm:text-lg">${cell.suit.symbol}</span>
+                            </div>
+                        `;
+                    }
+
+                    // Overlay de fichas
+                    if (cell.chip && cell.chip !== 'free') {
+                        content += `
+                            <div class="absolute inset-0 flex items-center justify-center ${cell.chip === 'blue' ? 'bg-blue-600/40' : 'bg-red-600/40'}">
+                                <div class="w-3 h-3 sm:w-6 sm:h-6 rounded-full border-2 border-white shadow-xl ${cell.chip === 'blue' ? 'bg-blue-400' : 'bg-red-400'}"></div>
+                            </div>
+                        `;
+                    } else if (cell.chip === 'free') {
+                        content += `<div class="absolute inset-0 bg-slate-700/60 flex items-center justify-center"><i data-lucide="sparkles" class="w-3 h-3 text-yellow-400 opacity-60"></i></div>`;
+                    }
+
+                    cellEl.innerHTML = content;
+                    boardEl.appendChild(cellEl);
+                });
+            });
+            lucide.createIcons();
+        }
+
+        function renderHand() {
+            const handEl = document.getElementById('hand');
+            handEl.innerHTML = '';
+            
+            hand.forEach((card, i) => {
+                const isSelected = selectedHandIdx === i;
+                const btn = document.createElement('button');
+                btn.className = `relative flex-1 md:flex-none h-20 sm:h-24 md:h-32 bg-white rounded-xl shadow-lg flex flex-col items-center justify-between p-2 sm:p-3 border-4 transition-all active:scale-95
+                    ${isSelected ? 'border-yellow-400 -translate-y-2 md:translate-x-3 ring-4 ring-yellow-400/30' : 'border-transparent opacity-80'}`;
+                
+                btn.onclick = () => selectCard(i);
+                btn.innerHTML = `
+                    <div class="w-full text-left font-black text-xs sm:text-base ${card.suit.color}">${card.rank}</div>
+                    <div class="text-2xl sm:text-4xl ${card.suit.color}">${card.suit.symbol}</div>
+                    <div class="w-full text-right font-black text-xs sm:text-base rotate-180 ${card.suit.color}">${card.rank}</div>
+                `;
+                handEl.appendChild(btn);
+            });
+        }
+
+        function selectCard(idx) {
+            selectedHandIdx = idx;
+            renderHand();
+            renderBoard();
+        }
+
+        function shouldCellGlow(cell) {
+            if (selectedHandIdx === null || cell.type === 'wild' || cell.chip) return false;
+            const card = hand[selectedHandIdx];
+            return cell.rank === card.rank && cell.suit.name === card.suit.name;
+        }
+
+        function onCellClick(r, c) {
+            if (selectedHandIdx === null) return;
+            const cell = board[r][c];
+            if (!shouldCellGlow(cell)) return;
+
+            pendingMove = { r, c };
+            showQuestion();
+        }
+
+        // --- PREGUNTAS Y FEEDBACK ---
+        function showQuestion() {
+            const modal = document.getElementById('question-modal');
+            const q = QUESTION_BANK[Math.floor(Math.random() * QUESTION_BANK.length)];
+            
+            document.getElementById('modal-header').className = `p-6 flex items-center gap-4 ${turn === 'Azul' ? 'bg-blue-600' : 'bg-red-600'}`;
+            document.getElementById('modal-turn-text').innerText = `Turno ${turn}`;
+            document.getElementById('question-text').innerText = q.q;
+            
+            const optionsEl = document.getElementById('options-container');
+            optionsEl.innerHTML = '';
+            
+            q.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-4 rounded-2xl bg-slate-800 border border-slate-700 hover:border-white/30 active:bg-slate-700 transition-all font-bold text-xs";
+                btn.innerText = opt;
+                btn.onclick = () => handleAnswer(opt === q.a);
+                optionsEl.appendChild(btn);
+            });
+
+            document.getElementById('modal-content').classList.remove('hidden');
+            document.getElementById('feedback-content').classList.add('hidden');
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function handleAnswer(correct) {
+            document.getElementById('modal-content').classList.add('hidden');
+            const feedbackEl = document.getElementById('feedback-content');
+            const iconContainer = document.getElementById('feedback-icon-container');
+            const titleEl = document.getElementById('feedback-title');
+            const msgEl = document.getElementById('feedback-msg');
+
+            if (correct) {
+                const { r, c } = pendingMove;
+                board[r][c].chip = turn === 'Azul' ? 'blue' : 'red';
+                hand[selectedHandIdx] = drawCard();
+                scores[turn] += 100;
+                
+                iconContainer.className = "p-4 rounded-full bg-green-500/20 text-green-400";
+                iconContainer.innerHTML = '<i data-lucide="check-circle-2" class="w-12 h-12"></i>';
+                titleEl.className = "font-black uppercase text-xl text-green-400";
+                titleEl.innerText = "¡Validado!";
+                msgEl.innerText = `Casilla conquistada por el equipo ${turn}.`;
+            } else {
+                iconContainer.className = "p-4 rounded-full bg-red-500/20 text-red-400";
+                iconContainer.innerHTML = '<i data-lucide="x-circle" class="w-12 h-12"></i>';
+                titleEl.className = "font-black uppercase text-xl text-red-400";
+                titleEl.innerText = "Error de Inspección";
+                msgEl.innerText = "Turno perdido por respuesta incorrecta.";
+            }
+
+            feedbackEl.classList.remove('hidden');
+            lucide.createIcons();
+
+            setTimeout(() => {
+                document.getElementById('question-modal').classList.add('hidden');
+                turn = turn === 'Azul' ? 'Rojo' : 'Azul';
+                selectedHandIdx = null;
+                updateUI();
+                renderBoard();
+                renderHand();
+            }, 2000);
+        }
+
+        function updateUI() {
+            document.getElementById('score-blue').innerText = scores.Azul;
+            document.getElementById('score-red').innerText = scores.Rojo;
+            
+            const banner = document.getElementById('turn-banner');
+            const ping = document.getElementById('turn-ping');
+            const text = document.getElementById('current-turn-text');
+            const headerIcon = document.getElementById('turn-indicator-icon');
+            const handCont = document.getElementById('hand-container');
+
+            if (turn === 'Azul') {
+                banner.className = "p-2.5 rounded-2xl border flex items-center justify-center gap-3 transition-all duration-500 shadow-lg bg-blue-600/10 border-blue-500/40";
+                ping.className = "w-3 h-3 rounded-full animate-pulse bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]";
+                text.className = "text-blue-400";
+                text.innerText = "Azul";
+                headerIcon.className = "p-1.5 sm:p-2 rounded-lg shadow-lg transition-colors duration-500 bg-blue-600";
+                handCont.className = "w-full md:w-48 lg:w-56 p-3 sm:p-5 rounded-3xl border-2 transition-all duration-500 shadow-xl bg-blue-900/10 border-blue-500/20";
+            } else {
+                banner.className = "p-2.5 rounded-2xl border flex items-center justify-center gap-3 transition-all duration-500 shadow-lg bg-red-600/10 border-red-500/40";
+                ping.className = "w-3 h-3 rounded-full animate-pulse bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]";
+                text.className = "text-red-400";
+                text.innerText = "Rojo";
+                headerIcon.className = "p-1.5 sm:p-2 rounded-lg shadow-lg transition-colors duration-500 bg-red-600";
+                handCont.className = "w-full md:w-48 lg:w-56 p-3 sm:p-5 rounded-3xl border-2 transition-all duration-500 shadow-xl bg-red-900/10 border-red-500/20";
+            }
+        }
+
+        // Iniciar iconos de Lucide al cargar
+        window.onload = () => lucide.createIcons();
+    </script>
+</body>
+</html>
